@@ -1,9 +1,14 @@
 // Обгортка над MTProto-клієнтом (GramJS). Працює прямо в браузері:
 // телефон під'єднується до серверів Telegram по WebSocket, без жодного бекенду.
 
-import { TelegramClient, Api, errors, utils } from 'telegram'
+// Має бути найпершим імпортом: узгоджує реалізації Buffer до того, як GramJS
+// почне серіалізувати TL-запити.
+import { applyBufferCompat } from './buffer-compat.js'
+import { TelegramClient, Api, errors, utils, password as srp } from 'telegram'
 import { StringSession } from 'telegram/sessions'
 import { state, patch, runtime } from './state.js'
+
+applyBufferCompat()
 
 let client = null
 
@@ -160,14 +165,23 @@ export async function signInWithCode({ phone, phoneCodeHash, code }) {
   return { status: 'ok' }
 }
 
+/**
+ * Вхід із хмарним паролем (SRP).
+ *
+ * Робимо це вручну, а не через client.signInWithPassword: обчислені A та M1
+ * приходять із crypto-browserify, тобто з «чужої» копії Buffer, і TL-серіалізація
+ * їх відхиляє. Buffer.from() приводить їх до тієї реалізації, яку очікує GramJS.
+ */
 export async function signInWithPassword(password) {
-  await client.signInWithPassword(
-    { apiId: Number(state.apiId), apiHash: String(state.apiHash).trim() },
-    {
-      password: async () => password,
-      onError: async (err) => { throw err },
-    }
-  )
+  const info = await client.invoke(new Api.account.GetPassword())
+  const check = await srp.computeCheck(info, password)
+  await client.invoke(new Api.auth.CheckPassword({
+    password: new Api.InputCheckPasswordSRP({
+      srpId: check.srpId,
+      A: Buffer.from(check.A),
+      M1: Buffer.from(check.M1),
+    }),
+  }))
   await afterLogin()
   return { status: 'ok' }
 }

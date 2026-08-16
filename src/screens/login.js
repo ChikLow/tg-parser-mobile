@@ -158,6 +158,9 @@ function codeStep(ctx, data) {
 function passwordStep(ctx) {
   const pass = el('input', { class: 'input', type: 'password', autocomplete: 'current-password', placeholder: '••••••••' })
   const btn = el('button', { class: 'btn btn--primary btn--block', type: 'submit', text: 'Підтвердити' })
+  const note = el('div', { class: 'card card--warn', hidden: true }, [
+    el('p', { class: 'small', text: 'Рахуємо ключ перевірки пароля. Це важка математика на 2048 біт, тож телефон може задуматись на 5–20 секунд — не закривай сторінку.' }),
+  ])
 
   const form = el('form', { class: 'stack', onsubmit: onSubmit }, [
     el('div', { class: 'card' }, [
@@ -167,6 +170,7 @@ function passwordStep(ctx) {
       el('div', { class: 'section__body' }, [field({ label: 'Пароль', input: pass })]),
     ]),
     btn,
+    note,
   ])
 
   setTimeout(() => pass.focus(), 100)
@@ -176,6 +180,9 @@ function passwordStep(ctx) {
     if (!pass.value) return toast('Введи пароль', 'error')
     btn.disabled = true
     btn.textContent = 'Перевіряємо…'
+    note.hidden = false
+    // Даємо браузеру намалювати нові стани, перш ніж заблокувати потік обчисленнями
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
     try {
       await tg.signInWithPassword(pass.value)
       await ctx.onAuthorized()
@@ -184,6 +191,7 @@ function passwordStep(ctx) {
       toast(tg.describeError(err), 'error', 6000)
       btn.disabled = false
       btn.textContent = 'Підтвердити'
+      note.hidden = true
     }
   }
 
