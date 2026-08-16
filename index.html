@@ -15,14 +15,80 @@
     <meta name="apple-mobile-web-app-title" content="TG Parser" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="icon" href="icons/favicon.png" />
+    <style>
+      /* Мінімум стилів для заставки: styles.css підвантажується разом із застосунком */
+      html, body { margin: 0; height: 100%; background: #0e1621; color: #eaf1f8;
+        font: 16px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif; }
+      #boot { min-height: 100%; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 14px; padding: 24px; text-align: center; }
+      #boot .logo { width: 62px; height: 62px; border-radius: 20px;
+        background: linear-gradient(160deg, #3390ec, #1b6fc4); }
+      #boot .text { color: #8296aa; font-size: 14px; }
+      #boot .diag { max-width: 460px; text-align: left; background: #17212b; border: 1px solid #24303c;
+        border-radius: 14px; padding: 16px; font-size: 14px; line-height: 1.5; }
+      #boot .diag b { color: #fff; }
+      #boot .diag code { background: #101922; padding: 1px 5px; border-radius: 5px; font-size: 13px; }
+      #boot .diag ol { margin: 8px 0 0; padding-left: 20px; }
+      #boot .diag .err { margin-top: 12px; color: #e15a5a; font-size: 12px; word-break: break-word; }
+    </style>
   </head>
   <body>
     <div id="app">
-      <div class="boot">
-        <div class="boot__logo"></div>
-        <div class="boot__text">Завантаження…</div>
+      <div id="boot">
+        <div class="logo"></div>
+        <div class="text" id="boot-text">Завантаження…</div>
       </div>
     </div>
+
+    <script>
+      // На телефоні немає консолі, тому про будь-яку проблему запуску кажемо прямо на екрані.
+      (function () {
+        var errors = []
+        window.addEventListener('error', function (e) {
+          var el = e.target
+          if (el && el !== window && (el.src || el.href)) {
+            errors.push('Не завантажився файл: ' + (el.src || el.href))
+          } else {
+            errors.push(e.message || String(e.error || e.type))
+          }
+        }, true)
+        window.addEventListener('unhandledrejection', function (e) {
+          errors.push(String((e.reason && e.reason.message) || e.reason))
+        })
+
+        setTimeout(function () {
+          if (window.__APP_BOOTED) return
+
+          var entry = document.querySelector('script[type=module][src]')
+          var src = entry ? entry.getAttribute('src') : ''
+          var unbuilt = /\/?src\/main\.js$/.test(src)
+
+          var html = unbuilt
+            ? '<b>Сайт віддає вихідний код, а не зібраний застосунок.</b>' +
+              '<p>Сторінка шукає <code>' + src + '</code> — цього файлу на GitHub Pages немає, бо застосунок треба спершу зібрати.</p>' +
+              '<b>Як полагодити:</b><ol>' +
+              '<li>Settings → Pages</li>' +
+              '<li>Source: <b>Deploy from a branch</b></li>' +
+              '<li>Branch: <b>gh-pages</b> → <b>/ (root)</b> → Save</li>' +
+              '</ol><p>Гілку <code>gh-pages</code> створює GitHub Actions при кожному push.</p>'
+            : '<b>Застосунок не завантажився.</b>' +
+              '<p>Перевір інтернет і онови сторінку. Якщо не допомагає — очисти дані сайту в браузері.</p>'
+
+          if (errors.length) {
+            html += '<div class="err">' + errors.slice(0, 3).map(function (m) {
+              return String(m).replace(/[<>&]/g, '')
+            }).join('<br>') + '</div>'
+          }
+
+          var boot = document.getElementById('boot')
+          boot.querySelector('.text').remove()
+          var box = document.createElement('div')
+          box.className = 'diag'
+          box.innerHTML = html
+          boot.appendChild(box)
+        }, 12000)
+      })()
+    </script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

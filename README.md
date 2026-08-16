@@ -27,11 +27,13 @@
 
 ### 1. Опублікувати сайт (робиться один раз)
 
-Репозиторій уже містить GitHub Actions, який усе збирає й публікує:
+Це не звичайна HTML-сторінка, а застосунок, який треба **зібрати** — просто ввімкнути Pages на робочій гілці недостатньо (сайт віддаватиме вихідний код і зависне на заставці). Збірку робить GitHub Actions при кожному push, складаючи готові файли в гілку `gh-pages`:
 
-1. У репозиторії: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Злий цю гілку в `main` (або запусти workflow «Deploy to GitHub Pages» вручну через **Actions → Run workflow**).
-3. За хвилину-дві сайт буде тут: **https://chiklow.github.io/tg-parser-mobile/**
+1. Дочекайся зеленої галочки в **Actions** (workflow «Build and publish to gh-pages»).
+2. **Settings → Pages → Source: Deploy from a branch → Branch: `gh-pages` → `/ (root)` → Save**.
+3. За хвилину сайт буде тут: **https://chiklow.github.io/tg-parser-mobile/**
+
+Якщо крок публікації впав із `403`: **Settings → Actions → General → Workflow permissions → Read and write permissions**.
 
 Будь-який інший статичний хостинг теж підійде — потрібна лише HTTPS-адреса:
 

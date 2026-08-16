@@ -1,21 +1,23 @@
-name: Deploy to GitHub Pages
+name: Build and publish to gh-pages
+
+# Збирає застосунок і кладе готові файли в окрему гілку gh-pages.
+# У Settings → Pages треба один раз обрати: Deploy from a branch → gh-pages → / (root).
+# Так публікація працює з будь-якої робочої гілки, без обмежень середовища github-pages.
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'claude/**']
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: pages-publish
   cancel-in-progress: true
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,16 +35,24 @@ jobs:
           # сайт живе за адресою https://<user>.github.io/<repo>/
           BASE_PATH: /${{ github.event.repository.name }}/
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
+      - name: Publish to gh-pages
+        run: |
+          touch dist/.nojekyll          # хай Jekyll не чіпає зібрані файли
+          cd dist
+          git init -q
+          git checkout -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Збірка з ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Підсумок
+        run: |
+          echo "### Готово ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Зібрано з гілки \`${{ github.ref_name }}\` і опубліковано в \`gh-pages\`." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Сайт: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Якщо сторінка порожня — перевір **Settings → Pages → Deploy from a branch → gh-pages → / (root)**." >> $GITHUB_STEP_SUMMARY

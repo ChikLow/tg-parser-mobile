@@ -8,6 +8,9 @@ import { parseScreen, isRunning } from './screens/parse.js'
 import { resultsScreen } from './screens/results.js'
 import { settingsScreen } from './screens/settings.js'
 
+// Прапорець для діагностики в index.html: бандл завантажився й виконується.
+window.__APP_BOOTED = true
+
 const root = document.getElementById('app')
 
 const SCREENS = {
